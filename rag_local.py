@@ -12,8 +12,8 @@ from ebooklib import epub
 from bs4 import BeautifulSoup
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.llms import LlamaCpp
 from langchain_classic.chains import RetrievalQA
 from langchain_core.documents import Document

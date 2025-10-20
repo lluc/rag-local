@@ -9,4 +9,13 @@ wheels/
 # Virtual environments
 .venv
 
-.gguf
+# Models and databases
+*.gguf
+models/
+chroma_db/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,17 @@
+[project]
+name = "rag-local"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "beautifulsoup4>=4.14.2",
+    "chromadb>=1.2.0",
+    "ebooklib>=0.19",
+    "langchain>=1.0.0",
+    "langchain-community>=0.4",
+    "llama-cpp-python>=0.3.16",
+    "lxml>=6.0.2",
+    "pymupdf>=1.26.5",
+    "sentence-transformers>=5.1.1",
+]

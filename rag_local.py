@@ -75,14 +75,17 @@ class LocalRAG:
     def __init__(
         self,
         model_path: Optional[str] = None,
-        model_key: str = "mistral-7b-instruct-q4",
+        model_key: str = "llama-3.2-3b",
         auto_download: bool = True,
         persist_directory: str = "./chroma_db",
         embedding_model: str = "all-MiniLM-L6-v2",
         chunk_size: int = 500,
         chunk_overlap: int = 100,
-        n_ctx: int = 2048,
-        n_threads: int = 4,
+        n_ctx: int = 4096,
+        n_threads: int = 8,
+        language: str = "fr",
+        retriever_k: int = 3,
+        chain_type: str = "stuff",
     ):
         """
         Initialise le système RAG
@@ -99,6 +102,12 @@ class LocalRAG:
             n_threads: Nombre de threads CPU
         """
         self.persist_directory = persist_directory
+        self.language = language
+        self.retriever_k = retriever_k
+        self.chain_type = chain_type
+
+        # Cache de traduction pour accélérer les traductions répétées
+        self._translation_cache = {}
 
         # Configuration des embeddings
         print("Chargement du modèle d'embeddings...")
@@ -134,8 +143,9 @@ class LocalRAG:
             model_path=resolved_model_path,
             n_ctx=n_ctx,
             n_threads=n_threads,
-            temperature=0.7,
-            max_tokens=512,
+            temperature=0.3,  # Plus déterministe = plus rapide
+            max_tokens=800,   # Plus de tokens disponibles
+            n_batch=512,      # Traitement par batch plus efficace
             verbose=False,
         )
 
@@ -144,16 +154,42 @@ class LocalRAG:
         self._setup_chain()
     
     def _setup_chain(self):
-        """Configure la chaîne RetrievalQA"""
+        """Configure la chaîne RetrievalQA avec prompt français optimisé"""
         if self.vectorstore._collection.count() > 0:
             retriever = self.vectorstore.as_retriever(
-                search_kwargs={"k": 3}
+                search_kwargs={"k": getattr(self, 'retriever_k', 3)}
             )
+
+            # Prompt français optimisé pour éviter les redondances
+            french_prompt = """Tu es un assistant qui répond en français de manière CONCISE et PRÉCISE.
+
+RÈGLES IMPORTANTES:
+- Réponds DIRECTEMENT à la question sans répétitions
+- Utilise TOUS les extraits pertinents pour une réponse complète
+- Structure ta réponse de manière LOGIQUE et ORGANISÉE
+- ÉVITE les redondances et les phrases répétitives
+- Sois INFORMATIF mais CONCIS
+- Si tu ne sais pas, dis simplement "Je ne trouve pas cette information"
+
+Documents:
+{context}
+
+Question: {question}
+
+Réponse concise en français:"""
+
+            from langchain_core.prompts import PromptTemplate
+            PROMPT = PromptTemplate(
+                template=french_prompt,
+                input_variables=["context", "question"]
+            )
+
             self.qa_chain = RetrievalQA.from_chain_type(
                 llm=self.llm,
                 chain_type="stuff",
                 retriever=retriever,
                 return_source_documents=True,
+                chain_type_kwargs={"prompt": PROMPT}
             )
     
     def index_document(self, file_path: str, metadata: Optional[dict] = None):
@@ -202,23 +238,24 @@ class LocalRAG:
                     self.index_document(str(file_path))
                 except Exception as e:
                     print(f"✗ Erreur avec {file_path}: {e}")
-    
+
     def query(self, question: str) -> dict:
         """
-        Pose une question au RAG
-        
+        Pose une question au RAG avec réponse directe en français
+
         Args:
             question: Question en langage naturel
-            
+
         Returns:
             dict avec 'result' et 'source_documents'
+            Réponse optimisée pour éviter les redondances
         """
         if not self.qa_chain:
             return {
                 "result": "Aucun document n'est indexé. Utilisez index_document() d'abord.",
                 "source_documents": []
             }
-        
+
         return self.qa_chain.invoke({"query": question})
     
     def clear_database(self):

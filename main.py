@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from rag_local import LocalRAG
 from llm_manager import LLMManager
+from llm_downloader import LLMDownloader
 
 
 def cmd_init(args):
@@ -20,7 +21,9 @@ def cmd_init(args):
             model_key=args.model_key,
             auto_download=args.auto_download,
             n_threads=args.threads,
-            persist_directory=args.db_path
+            persist_directory=args.db_path,
+            retriever_k=args.retriever_k,
+            chain_type=args.chain_type
         )
         print("\n✅ Système RAG initialisé avec succès !")
         return 0
@@ -39,7 +42,9 @@ def cmd_index(args):
             model_key=args.model_key,
             auto_download=False,  # Ne pas télécharger pendant l'indexation
             n_threads=args.threads,
-            persist_directory=args.db_path
+            persist_directory=args.db_path,
+            retriever_k=args.retriever_k,
+            chain_type=args.chain_type
         )
 
         path = Path(args.path)
@@ -76,7 +81,9 @@ def cmd_query(args):
             model_key=args.model_key,
             auto_download=False,
             n_threads=args.threads,
-            persist_directory=args.db_path
+            persist_directory=args.db_path,
+            retriever_k=args.retriever_k,
+            chain_type=args.chain_type
         )
 
         # Mode interactif ou question unique
@@ -147,21 +154,51 @@ def cmd_query(args):
 
 
 def cmd_list_models(args):
-    """Liste les modèles disponibles"""
-    manager = LLMManager(models_dir=args.models_dir)
-    manager.print_available_models()
+    """Liste les modèles disponibles et installés"""
+    downloader = LLMDownloader(models_dir=args.models_dir)
+
+    # Afficher les modèles disponibles
+    downloader.list_available_models()
+
+    # Afficher les modèles installés
+    installed = downloader.list_installed_models()
+    if installed:
+        print(f"\n✅ Modèles installés localement: {len(installed)}")
+        for key, path in installed.items():
+            size_mb = Path(path).stat().st_size / (1024**2)
+            print(f"   🔹 {key}: {size_mb:.1f} MB")
+    else:
+        print("\n📭 Aucun modèle installé localement")
+        print(f"💡 Téléchargez un modèle avec: python main.py download <model_key>")
+
     return 0
 
 
 def cmd_download(args):
-    """Télécharge un modèle recommandé"""
-    print("📥 Téléchargement de modèle\n")
+    """Télécharge un modèle LLM"""
+    print("📥 Gestionnaire de téléchargement LLM\n")
 
     try:
-        manager = LLMManager(models_dir=args.models_dir)
-        model_path = manager.download_recommended_model(args.model_key)
-        print(f"\n✅ Modèle téléchargé: {model_path}")
-        return 0
+        downloader = LLMDownloader(models_dir=args.models_dir)
+
+        # Si aucun modèle spécifié, montrer les options
+        if not hasattr(args, 'model_key') or not args.model_key:
+            downloader.list_available_models()
+            print(f"\n💡 Usage: python main.py download <model_key>")
+            print(f"Exemple: python main.py download llama-3.2-3b")
+            return 1
+
+        # Télécharger le modèle demandé
+        success = downloader.download_model(args.model_key, force=getattr(args, 'force', False))
+
+        if success:
+            model_path = downloader.get_model_path(args.model_key)
+            print(f"\n🎉 Prêt à utiliser!")
+            print(f"💡 Testez avec: python main.py --model-path {model_path} query -q 'Test'")
+            return 0
+        else:
+            return 1
+
     except Exception as e:
         print(f"\n❌ Erreur lors du téléchargement: {e}")
         return 1
@@ -183,7 +220,9 @@ def cmd_clear(args):
             model_key=args.model_key,
             auto_download=False,
             n_threads=args.threads,
-            persist_directory=args.db_path
+            persist_directory=args.db_path,
+            retriever_k=args.retriever_k,
+            chain_type=args.chain_type
         )
         rag.clear_database()
         print("✅ Base de données effacée avec succès !")
@@ -204,7 +243,7 @@ Exemples d'utilisation:
   python main.py models
 
   # Télécharger un modèle
-  python main.py download mistral-7b-instruct-q4
+  python main.py download llama-3.2-3b
 
   # Indexer un document
   python main.py index ./docs/manuel.pdf
@@ -230,8 +269,8 @@ Exemples d'utilisation:
     )
     parser.add_argument(
         "--model-key",
-        default="mistral-7b-instruct-q4",
-        help="Clé du modèle recommandé (défaut: mistral-7b-instruct-q4)"
+        default="llama-3.2-3b",
+        help="Clé du modèle recommandé (défaut: llama-3.2-3b)"
     )
     parser.add_argument(
         "--threads", "-t",
@@ -248,6 +287,18 @@ Exemples d'utilisation:
         "--models-dir",
         default="./models",
         help="Dossier des modèles (défaut: ./models)"
+    )
+    parser.add_argument(
+        "--retriever-k", "-k",
+        type=int,
+        default=3,
+        help="Nombre de documents à récupérer (défaut: 3, recommandé: 8-12)"
+    )
+    parser.add_argument(
+        "--chain-type",
+        default="stuff",
+        choices=["stuff", "map_reduce", "refine"],
+        help="Stratégie de combinaison des documents (défaut: stuff)"
     )
 
     # Sous-commandes
@@ -294,6 +345,7 @@ Exemples d'utilisation:
     # Commande: download
     parser_download = subparsers.add_parser("download", help="Télécharger un modèle")
     parser_download.add_argument("model_key", help="Clé du modèle à télécharger")
+    parser_download.add_argument("--force", action="store_true", help="Forcer le téléchargement même si déjà présent")
     parser_download.set_defaults(func=cmd_download)
 
     # Commande: clear

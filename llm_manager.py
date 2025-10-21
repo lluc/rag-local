@@ -28,11 +28,11 @@ class LLMManager:
             "size": "5.13 GB",
             "description": "Mistral 7B Instruct - Quantization Q5_K_M (meilleure qualité)"
         },
-        "llama-3.2-3b-q4": {
+        "llama-3.2-3b": {
             "url": "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf",
             "filename": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
             "size": "1.95 GB",
-            "description": "Llama 3.2 3B Instruct - Plus léger"
+            "description": "Llama 3.2 3B Instruct - RECOMMANDÉ (équilibré et performant)"
         },
         "phi-3-mini-q4": {
             "url": "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf",
@@ -170,7 +170,7 @@ class LLMManager:
     def get_or_download_model(
         self,
         model_path: Optional[str] = None,
-        model_key: str = "mistral-7b-instruct-q4",
+        model_key: str = "llama-3.2-3b",
         auto_download: bool = True
     ) -> str:
         """
@@ -190,10 +190,20 @@ class LLMManager:
                 return model_path
             print(f"⚠️  Modèle non trouvé: {model_path}")
 
-        # Chercher dans le dossier models
+        # Vérifier si le modèle demandé (model_key) existe localement
+        if model_key in self.RECOMMENDED_MODELS:
+            recommended_filename = self.RECOMMENDED_MODELS[model_key]["filename"]
+            recommended_path = self.models_dir / recommended_filename
+            if recommended_path.exists():
+                print(f"✓ Modèle demandé trouvé: {model_key}")
+                print(f"   Utilisation de: {recommended_path}")
+                return str(recommended_path)
+
+        # Si le modèle demandé n'existe pas, chercher d'autres modèles locaux
         local_models = self.list_available_models()
         if local_models:
-            print(f"✓ Modèles locaux trouvés: {len(local_models)}")
+            print(f"⚠️  Modèle demandé '{model_key}' non trouvé localement")
+            print(f"✓ Autres modèles locaux trouvés: {len(local_models)}")
             model = local_models[0]
             print(f"   Utilisation de: {model}")
             return model
@@ -250,7 +260,7 @@ if __name__ == "__main__":
 
     # Obtenir ou télécharger un modèle
     # model_path = manager.get_or_download_model(
-    #     model_key="mistral-7b-instruct-q4",
+    #     model_key="llama-3.2-3b",
     #     auto_download=True
     # )
     # print(f"\n✓ Modèle prêt: {model_path}")

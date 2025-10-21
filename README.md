@@ -1,5 +1,9 @@
 # RAG Local - Système RAG 100% Local
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Project Status: Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+
 Système de Retrieval-Augmented Generation (RAG) complètement local, sans dépendance à des API externes. Utilise des modèles LLM quantifiés (GGUF) et ChromaDB pour la base vectorielle.
 
 ## ✨ Fonctionnalités

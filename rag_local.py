@@ -221,14 +221,40 @@ Réponse directe (max 200 mots):"""
             Document(page_content=chunk, metadata=base_metadata)
             for chunk in chunks
         ]
-        
-        # Ajouter à la base vectorielle
-        self.vectorstore.add_documents(documents)
+
+        # Ajouter à la base vectorielle par batches pour éviter les erreurs de taille
+        batch_size = 1000  # Taille de batch sécurisée pour ChromaDB
+        total_docs = len(documents)
+
+        print(f"📊 {total_docs} chunks créés, traitement par batches de {batch_size}")
+
+        for i in range(0, total_docs, batch_size):
+            batch = documents[i:i + batch_size]
+            batch_num = (i // batch_size) + 1
+            total_batches = (total_docs + batch_size - 1) // batch_size
+
+            print(f"   ⏳ Batch {batch_num}/{total_batches} : {len(batch)} documents")
+
+            try:
+                self.vectorstore.add_documents(batch)
+                print(f"   ✅ Batch {batch_num} ajouté avec succès")
+            except Exception as e:
+                print(f"   ❌ Erreur batch {batch_num}: {e}")
+                # Tenter avec un batch plus petit
+                if len(batch) > 100:
+                    smaller_batch_size = 100
+                    print(f"   🔄 Réessai avec batch de {smaller_batch_size}")
+                    for j in range(0, len(batch), smaller_batch_size):
+                        small_batch = batch[j:j + smaller_batch_size]
+                        self.vectorstore.add_documents(small_batch)
+                        print(f"      ✅ Sous-batch {j//smaller_batch_size + 1} traité")
+                else:
+                    raise e
         
         # Reconfigurer la chain
         self._setup_chain()
-        
-        print(f"✓ {len(chunks)} chunks indexés")
+
+        print(f"\n✅ Indexation terminée : {total_docs} chunks traités avec succès")
     
     def index_directory(self, directory: str):
         """Indexe tous les documents supportés dans un dossier"""

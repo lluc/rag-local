@@ -40,25 +40,25 @@ uv sync
 
 ```bash
 # Lister les modèles disponibles
-python main.py models
+uv run python main.py models
 
 # Télécharger le modèle recommandé
-python main.py download llama-3.2-3b
+uv run python main.py download llama-3.2-3b
 
 # Indexer un document
-python main.py index ./docs/manuel.pdf
+uv run python main.py index ./docs/manuel.pdf
 
 # Indexer un dossier complet
-python main.py index ./docs/
+uv run python main.py index ./docs/
 
 # Poser une question
-python main.py query -q "Résume le document principal"
+uv run python main.py query -q "Résume le document principal"
 
 # Mode interactif
-python main.py query --interactive
+uv run python main.py query --interactive
 
 # Effacer la base de données
-python main.py clear
+uv run python main.py clear
 ```
 
 ### Utilisation Python
@@ -114,13 +114,13 @@ Le système propose 5 modèles pré-configurés :
 
 ```bash
 # Voir tous les modèles disponibles et installés
-python main.py models
+uv run python main.py models
 
 # Télécharger un modèle spécifique
-python main.py download mistral-7b-instruct-q4
+uv run python main.py download mistral-7b-instruct-q4
 
 # Forcer le re-téléchargement
-python main.py download llama-3.2-3b --force
+uv run python main.py download llama-3.2-3b --force
 ```
 
 ### Utilisation du LLMDownloader
@@ -178,7 +178,7 @@ rag = LocalRAG(
 
 ```bash
 # Configuration globale
-python main.py \
+uv run python main.py \
   --model-key llama-3.2-3b \
   --threads 8 \
   --db-path ./ma_base \
@@ -186,7 +186,7 @@ python main.py \
   query -q "Ma question"
 
 # Afficher les sources dans les réponses
-python main.py query -q "Ma question" --show-sources
+uv run python main.py query -q "Ma question" --show-sources
 ```
 
 ### Formats de documents supportés
@@ -199,13 +199,13 @@ python main.py query -q "Ma question" --show-sources
 
 ```bash
 # Tester la sélection de modèles
-python test_model_selection.py
+uv run python test_model_selection.py
 
 # Vérifier l'import des modules
-python -c "from rag_local import LocalRAG; print('✅ Import réussi')"
+uv run python -c "from rag_local import LocalRAG; print('✅ Import réussi')"
 
 # Tester l'affichage des modèles disponibles
-python -c "from llm_downloader import LLMDownloader; LLMDownloader().list_available_models()"
+uv run python -c "from llm_downloader import LLMDownloader; LLMDownloader().list_available_models()"
 ```
 
 ## 🔧 Dépannage
@@ -214,8 +214,8 @@ python -c "from llm_downloader import LLMDownloader; LLMDownloader().list_availa
 
 Essayez un modèle plus petit :
 ```bash
-python main.py download gemma-2-2b  # ~1.7GB
-python main.py download tinyllama   # ~700MB
+uv run python main.py download gemma-2-2b  # ~1.7GB
+uv run python main.py download tinyllama   # ~700MB
 ```
 
 ### Le téléchargement échoue
@@ -243,8 +243,8 @@ Le projet utilise LangChain 1.0+ avec les nouveaux packages modulaires :
 Le système utilise désormais Llama-3.2-3B par défaut, optimisé pour les réponses en français. Si vous utilisez encore Mistral-7B, passez à Llama-3.2-3B :
 
 ```bash
-python main.py download llama-3.2-3b
-python main.py query -q "Test en français"
+uv run python main.py download llama-3.2-3b
+uv run python main.py query -q "Test en français"
 ```
 
 ## 📊 Performance
@@ -277,31 +277,31 @@ Ce système est **100% local** :
 
 ```bash
 # Indexer votre documentation
-python main.py index ./docs/technique/
+uv run python main.py index ./docs/technique/
 
 # Poser des questions spécifiques
-python main.py query -q "Comment configurer l'authentification ?"
-python main.py query -q "Quelles sont les API disponibles ?"
+uv run python main.py query -q "Comment configurer l'authentification ?"
+uv run python main.py query -q "Quelles sont les API disponibles ?"
 ```
 
 ### Recherche dans des livres
 
 ```bash
 # Indexer des EPUB
-python main.py index ./bibliotheque/*.epub
+uv run python main.py index ./bibliotheque/*.epub
 
 # Mode interactif pour exploration
-python main.py query --interactive
+uv run python main.py query --interactive
 ```
 
 ### Analyse de code source
 
 ```bash
 # Indexer des fichiers Markdown de documentation
-python main.py index ./src/docs/
+uv run python main.py index ./src/docs/
 
 # Rechercher des patterns
-python main.py query -q "Comment utiliser la fonction de cache ?"
+uv run python main.py query -q "Comment utiliser la fonction de cache ?"
 ```
 
 ## 🤝 Contribution

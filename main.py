@@ -102,6 +102,16 @@ def cmd_query(args):
                     print("\n⏳ Traitement en cours...")
                     result = rag.query(question)
 
+                    if args.debug and result.get('source_documents'):
+                        print("\n" + "="*60)
+                        print("🔍 DEBUG - CHUNKS RÉCUPÉRÉS")
+                        print("="*60)
+                        for i, doc in enumerate(result['source_documents'], 1):
+                            source = doc.metadata.get('source', 'Unknown')
+                            content = doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
+                            print(f"\n{i}. Source: {source}")
+                            print(f"   Contenu: {content}")
+
                     print("\n" + "="*60)
                     print("🤖 RÉPONSE")
                     print("="*60)
@@ -131,6 +141,16 @@ def cmd_query(args):
             print("⏳ Traitement en cours...")
 
             result = rag.query(args.question)
+
+            if args.debug and result.get('source_documents'):
+                print("\n" + "="*60)
+                print("🔍 DEBUG - CHUNKS RÉCUPÉRÉS")
+                print("="*60)
+                for i, doc in enumerate(result['source_documents'], 1):
+                    source = doc.metadata.get('source', 'Unknown')
+                    content = doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
+                    print(f"\n{i}. Source: {source}")
+                    print(f"   Contenu: {content}")
 
             print("\n" + "="*60)
             print("🤖 RÉPONSE")
@@ -204,6 +224,45 @@ def cmd_download(args):
         return 1
 
 
+def cmd_info(args):
+    """Affiche les informations sur la base de données"""
+    print("📊 Informations sur la base de données\n")
+
+    try:
+        rag = LocalRAG(
+            model_path=args.model_path,
+            model_key=args.model_key,
+            auto_download=False,
+            n_threads=args.threads,
+            persist_directory=args.db_path,
+            retriever_k=args.retriever_k,
+            chain_type=args.chain_type
+        )
+
+        stats = rag.get_database_stats()
+
+        print(f"📈 Statistiques:")
+        print(f"   Documents indexés: {stats['total_documents']}")
+        print(f"   Chunks totaux: {stats['total_chunks']}")
+
+        if stats['documents']:
+            print(f"\n📚 Documents dans la base:")
+            for i, doc in enumerate(stats['documents'], 1):
+                # Afficher juste le nom du fichier pour plus de clarté
+                filename = Path(doc).name
+                print(f"   {i}. {filename}")
+                if args.verbose:
+                    print(f"      Chemin: {doc}")
+        else:
+            print("\n📭 Aucun document indexé")
+            print("💡 Utilisez 'python main.py index <fichier>' pour ajouter des documents")
+
+        return 0
+    except Exception as e:
+        print(f"❌ Erreur lors de la lecture: {e}")
+        return 1
+
+
 def cmd_clear(args):
     """Efface la base de données vectorielle"""
     print("🗑️  Nettoyage de la base de données\n")
@@ -257,6 +316,9 @@ Exemples d'utilisation:
   # Mode interactif
   python main.py query --interactive
 
+  # Voir les documents indexés
+  python main.py info
+
   # Effacer la base de données
   python main.py clear --force
         """
@@ -291,8 +353,8 @@ Exemples d'utilisation:
     parser.add_argument(
         "--retriever-k", "-k",
         type=int,
-        default=3,
-        help="Nombre de documents à récupérer (défaut: 3, recommandé: 8-12)"
+        default=8,
+        help="Nombre de documents à récupérer (défaut: 8, recommandé: 8-12)"
     )
     parser.add_argument(
         "--chain-type",
@@ -336,6 +398,11 @@ Exemples d'utilisation:
         default=True,
         help="Afficher les sources (défaut: activé)"
     )
+    parser_query.add_argument(
+        "--debug",
+        action="store_true",
+        help="Afficher les chunks récupérés pour diagnostic"
+    )
     parser_query.set_defaults(func=cmd_query)
 
     # Commande: models
@@ -347,6 +414,15 @@ Exemples d'utilisation:
     parser_download.add_argument("model_key", help="Clé du modèle à télécharger")
     parser_download.add_argument("--force", action="store_true", help="Forcer le téléchargement même si déjà présent")
     parser_download.set_defaults(func=cmd_download)
+
+    # Commande: info
+    parser_info = subparsers.add_parser("info", help="Afficher les informations sur la base de données")
+    parser_info.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Afficher les chemins complets des fichiers"
+    )
+    parser_info.set_defaults(func=cmd_info)
 
     # Commande: clear
     parser_clear = subparsers.add_parser("clear", help="Effacer la base de données")

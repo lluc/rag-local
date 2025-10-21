@@ -143,9 +143,12 @@ class LocalRAG:
             model_path=resolved_model_path,
             n_ctx=n_ctx,
             n_threads=n_threads,
-            temperature=0.3,  # Plus déterministe = plus rapide
-            max_tokens=800,   # Plus de tokens disponibles
-            n_batch=512,      # Traitement par batch plus efficace
+            temperature=0.3,      # Plus déterministe
+            max_tokens=400,       # Limiter la longueur pour éviter les dérives
+            n_batch=512,          # Traitement par batch efficace
+            repeat_penalty=1.3,   # Pénaliser fortement les répétitions
+            top_p=0.9,            # Nucleus sampling pour plus de diversité
+            top_k=40,             # Limiter les tokens candidats
             verbose=False,
         )
 
@@ -161,22 +164,22 @@ class LocalRAG:
             )
 
             # Prompt français optimisé pour éviter les redondances
-            french_prompt = """Tu es un assistant qui répond en français de manière CONCISE et PRÉCISE.
+            french_prompt = """Tu es un assistant qui répond en français de manière CONCISE et DIRECTE.
 
-RÈGLES IMPORTANTES:
-- Réponds DIRECTEMENT à la question sans répétitions
-- Utilise TOUS les extraits pertinents pour une réponse complète
-- Structure ta réponse de manière LOGIQUE et ORGANISÉE
-- ÉVITE les redondances et les phrases répétitives
-- Sois INFORMATIF mais CONCIS
-- Si tu ne sais pas, dis simplement "Je ne trouve pas cette information"
+INSTRUCTIONS STRICTES:
+1. Réponds à la question en UNE SEULE FOIS
+2. NE RÉPÈTE JAMAIS la même information
+3. Structure: introduction brève + points clés + conclusion courte
+4. Maximum 200 mots
+5. ARRÊTE-TOI dès que la réponse est complète
+6. Si tu ne sais pas, dis "Information non disponible" et STOP
 
-Documents:
+Documents de référence:
 {context}
 
 Question: {question}
 
-Réponse concise en français:"""
+Réponse directe (max 200 mots):"""
 
             from langchain_core.prompts import PromptTemplate
             PROMPT = PromptTemplate(
